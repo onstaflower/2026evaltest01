@@ -15,7 +15,42 @@ import streamlit as st
 from gemini_evaluator import GeminiEvaluator
 from sheets_handler import SheetsHandler, clean_spreadsheet_id
 from utils import convert_df_to_csv, extract_text_from_file, format_student_id, process_images_for_ai
-from storage_manager import load_global_rubric, save_global_rubric, save_submission
+# Simple persistence utilities (replaces storage_manager)
+import json
+import os
+from pathlib import Path
+
+DATA_DIR = Path(__file__).resolve().parent / "data"
+DATA_DIR.mkdir(exist_ok=True)
+
+def load_global_rubric() -> dict:
+    """Load global rubric from JSON file if exists, else return empty dict."""
+    path = DATA_DIR / "global_rubric.json"
+    if path.is_file():
+        try:
+            return json.loads(path.read_text(encoding="utf-8"))
+        except Exception:
+            return {}
+    return {}
+
+def save_global_rubric(rubric: dict) -> bool:
+    """Save rubric dict to JSON file."""
+    try:
+        (DATA_DIR / "global_rubric.json").write_text(json.dumps(rubric, ensure_ascii=False, indent=2), encoding="utf-8")
+        return True
+    except Exception:
+        return False
+
+def save_submission(student_key: str, record: dict) -> tuple:
+    """Persist a student submission locally as JSON file."""
+    try:
+        sub_dir = DATA_DIR / "submissions"
+        sub_dir.mkdir(exist_ok=True)
+        file_path = sub_dir / f"{student_key}.json"
+        file_path.write_text(json.dumps(record, ensure_ascii=False, indent=2), encoding="utf-8")
+        return True, "Local submission saved"
+    except Exception as e:
+        return False, str(e)
 
 
 # -----------------------------------------------------------------------------
